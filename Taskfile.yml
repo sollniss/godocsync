@@ -1,0 +1,8 @@
+version: "3"
+
+tasks:
+  sync:
+    desc: Sync example doc comments and README code blocks
+    cmds:
+      - go run ./cmd/godocsync -fix ./examples/
+      - mdsync README.md

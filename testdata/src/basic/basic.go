@@ -1,0 +1,162 @@
+// pkg does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+package basic
+
+func _() {
+	// #example package
+	newCode()
+	// #endexample
+}
+
+// Func does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+func Func() {} // want Func:"example"
+
+func _() {
+	// #example Func
+	newCode()
+	// #endexample
+}
+
+// unexpFunc does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+func unexpFunc() {} // want unexpFunc:"example"
+
+func _() {
+	// #example unexpFunc
+	newCode()
+	// #endexample
+}
+
+// Type does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+type Type struct{} // want Type:"example"
+
+func _() {
+	// #example Type
+	newCode()
+	// #endexample
+}
+
+// unexpType does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+type unexpType struct{} // want unexpType:"example"
+
+func _() {
+	// #example unexpType
+	newCode()
+	// #endexample
+}
+
+// Method does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+func (Type) Method() {} // want Method:"example"
+
+func _() {
+	// #example Type.Method
+	newCode()
+	// #endexample
+}
+
+// unexpMethod does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+func (Type) unexpMethod() {} // want unexpMethod:"example"
+
+func _() {
+	// #example Type.unexpMethod
+	newCode()
+	// #endexample
+}
+
+// Var does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+var Var struct{} // want Var:"example"
+
+func _() {
+	// #example Var
+	newCode()
+	// #endexample
+}
+
+// unexpVar does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
+var unexpVar struct{} // want unexpVar:"example"
+
+func _() {
+	// #example unexpVar
+	newCode()
+	// #endexample
+}
+
+// TopLevelFunc does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+func TopLevelFunc() {} // want TopLevelFunc:"example"
+
+// #example TopLevelFunc
+func topLevelFuncImpl() {}
+
+// #endexample
+
+// TopLevelMethod does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+func (Type) TopLevelMethod() {} // want TopLevelMethod:"example"
+
+// #example Type.TopLevelMethod
+type tlmHelper struct{}
+
+func (tlmHelper) Do() {}
+
+// #endexample
+
+func newCode() {}

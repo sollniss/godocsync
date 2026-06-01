@@ -1,0 +1,19 @@
+package basic
+
+// SplitExample does something.
+//
+//	i++
+//	i++
+func SplitExample() {} // want SplitExample:"example"
+
+func _() {
+	var i int
+	// #example SplitExample
+	i++
+	// #endexample
+	i--
+	// #example SplitExample
+	i++
+	// #endexample
+	_ = i
+}

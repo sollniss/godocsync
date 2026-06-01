@@ -1,0 +1,14 @@
+package inline
+
+// Example:
+//
+//	MyString("one")
+//	MyString("two")
+func Split() {} // want Split:"example"
+
+func _() {
+	_ = /* #example Split */ MyString("one") /* #endexample */
+	_ = MyString("skipped")
+
+	_ = /* #example Split */ MyString("two") /* #endexample */
+}

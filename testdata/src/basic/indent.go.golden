@@ -1,0 +1,32 @@
+package basic
+
+// Func does something.
+//
+// Example:
+//
+//	newCode()
+//	newCode()
+//	if true {
+//		newCode()
+//	}
+//
+// Extra line.
+func Indent() {} // want Indent:"example"
+
+func _() {
+	if true {
+		// #example Indent
+		newCode()
+		// #endexample
+	}
+
+	// #example Indent
+	newCode()
+	// #endexample
+
+	// #example Indent
+	if true {
+		newCode()
+	}
+	// #endexample
+}

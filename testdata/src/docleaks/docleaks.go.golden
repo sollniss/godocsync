@@ -1,0 +1,26 @@
+package docleaks
+
+// Func does something.
+//
+//	newCode()
+func Func() {} // want Func:"example"
+
+// When #example immediately precedes a type declaration,
+// the marker comment is parsed as the docs comment for the type.
+//
+// Verify that it does not get included in the output.
+//
+//	type Typ struct{}
+func MarkerBeforeType() {} // want MarkerBeforeType:"example"
+
+func _() {
+	// #example Func
+	newCode()
+	// #endexample
+
+	// #example MarkerBeforeType
+	type Typ struct{}
+	// #endexample
+}
+
+func newCode() {}

@@ -1,0 +1,28 @@
+package multifile
+
+// MultiFile does something.
+//
+// Example:
+//
+//	NewCode()
+//
+// Extra line.
+func MultiFile() struct{}
+
+// MultiFile_Test does something.
+//
+// Example:
+//
+//	NewCode()
+//
+// Extra line.
+func MultiFile_Test() struct{}
+
+// MultiFile_TestPkg does something.
+//
+// Example:
+//
+//	multifile.NewCode()
+//
+// Extra line.
+func MultiFile_TestPkg() struct{}
