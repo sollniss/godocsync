@@ -13,10 +13,6 @@ import (
 type exampleBlock struct {
 	ordinals         []string    // per-ordinal newline-delimited text ("" + zero pos = not specified)
 	ordinalPositions []token.Pos // parallel to ordinals (zero = not specified)
-	// firstMarkerFile is the filename of the first marker for diagnostic messages.
-	firstMarkerFile string
-	// firstMarkerLine is the line number of the first marker for diagnostic messages.
-	firstMarkerLine int
 }
 
 // firstPos returns the position of the first specified ordinal marker,
@@ -92,14 +88,6 @@ func buildExamples(pieces []piece) map[symbolKey]*exampleBlock {
 				block.ordinals[ord-1] = b.String()
 			}
 			block.ordinalPositions[ord-1] = ps[0].pos
-		}
-
-		// record first marker position for diagnostic messages
-		firstOK := ordinalKey{sym: sym, ordinal: ords[0]}
-		firstPieces := byOrdKey[firstOK]
-		if len(firstPieces) > 0 {
-			block.firstMarkerFile = firstPieces[0].file
-			block.firstMarkerLine = firstPieces[0].line
 		}
 
 		result[sym] = block

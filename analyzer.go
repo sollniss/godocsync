@@ -373,7 +373,6 @@ func checkFactSync(
 		return
 	}
 
-	sourceRef := filepath.Base(block.firstMarkerFile) + ":" + strconv.Itoa(block.firstMarkerLine)
 	nBlocks := len(fact.Blocks)
 
 	for i, text := range block.ordinals {
@@ -390,6 +389,10 @@ func checkFactSync(
 		if ordinalMatchesFact(text, fact.Blocks[i].Text) {
 			continue
 		}
+		// Point at the marker of this ordinal, not at the first marker of the
+		// symbol: each ordinal has its own region.
+		markerPos := pass.Fset.Position(block.ordinalPositions[i])
+		sourceRef := filepath.Base(markerPos.Filename) + ":" + strconv.Itoa(markerPos.Line)
 		rendered := renderOrdinal(text)
 		diagPos := tf.Pos(fact.Blocks[i].DiagOffset)
 		pass.Report(analysis.Diagnostic{

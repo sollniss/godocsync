@@ -2,12 +2,12 @@ package basic
 
 // First:
 //
-//	oldCode() // want "code block is out of sync with example code"
+//	oldCode() // want `code block is out of sync with example code \(source: ordinal.go:17\)`
 //	oldCode()
 //
 // Second:
 //
-//	oldCode() // want "code block is out of sync with example code"
+//	oldCode() // want `code block is out of sync with example code \(source: ordinal.go:22\)`
 //	oldCode()
 //
 // Extra line.
