@@ -225,6 +225,17 @@ func TestMultiFile(t *testing.T) {
 	}
 }
 
+func TestMaxWidth(t *testing.T) {
+	// The flag is a package variable, so the test sets it and restores it.
+	if err := godocsync.Analyzer.Flags.Set("max-width", "20"); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = godocsync.Analyzer.Flags.Set("max-width", "0") }()
+
+	testdata := analysistest.TestData()
+	analysistest.Run(t, testdata, godocsync.Analyzer, "width")
+}
+
 func TestNameCollision(t *testing.T) {
 	// The external test package imports 2 packages with the name collide: the
 	// package under test and collide/other, which it imports first. The

@@ -15,6 +15,12 @@ godocsync ./...        # report out-of-sync code blocks
 godocsync -fix ./...   # auto-fix doc comments
 ```
 
+### Flags
+
+- `-fix` applies the suggested fixes: it rewrites the code blocks in the doc comments from the example regions.
+- `-max-width N` reports every line of an example region that is wider than N columns, as the doc comment shows it: without the indentation that the lines of the region share, and with tabs expanded. Editors show doc comments in tooltips, which wrap long lines. The default of 0 disables the check.
+- `-tab-width N` sets the width of a tab for `-max-width`. The default is 4.
+
 ## Examples
 
 ### Basic

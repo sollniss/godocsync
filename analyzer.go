@@ -1,6 +1,7 @@
 package godocsync
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -45,6 +46,19 @@ var Analyzer = &analysis.Analyzer{
 	FactTypes: []analysis.Fact{(*ExampleFact)(nil)},
 }
 
+// maxWidth and tabWidth hold the -max-width and -tab-width flags.
+var (
+	maxWidth int
+	tabWidth int
+)
+
+func init() {
+	Analyzer.Flags.IntVar(&maxWidth, "max-width", 0,
+		"report example lines wider than this many columns (0 disables the check)")
+	Analyzer.Flags.IntVar(&tabWidth, "tab-width", 4,
+		"width of a tab for -max-width")
+}
+
 func run(pass *analysis.Pass) (interface{}, error) {
 	// Replace the framework's restricted ReadFile with os.ReadFile so that
 	// cross-package suggested fixes (e.g. pkg_test fixing docs in pkg) can
@@ -62,6 +76,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			Pos:     me.Pos,
 			Message: me.Message,
 		})
+	}
+
+	if maxWidth > 0 {
+		reportWideLines(pass, pieces)
 	}
 
 	// For non-external-test packages, export ExampleFacts for documented symbols.
@@ -120,6 +138,41 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+// reportWideLines reports every line of an example region that is wider than
+// maxWidth columns. The width is the width of the line as the doc comment
+// shows it: without the indentation that the lines of the region have in
+// common, and with each tab as tabWidth columns. Editors show doc comments in
+// tooltips, which wrap long lines.
+func reportWideLines(pass *analysis.Pass, pieces []piece) {
+	for _, p := range pieces {
+		for i, line := range strings.Split(p.text, "\n") {
+			w := displayWidth(line)
+			if w <= maxWidth {
+				continue
+			}
+			pass.Report(analysis.Diagnostic{
+				Pos: p.pos,
+				Message: fmt.Sprintf("example line %d is %d columns wide, the limit is %d: %s",
+					i+1, w, maxWidth, strings.TrimSpace(line)),
+			})
+		}
+	}
+}
+
+// displayWidth returns the width of a line in columns, with tabs expanded to
+// the next multiple of tabWidth.
+func displayWidth(line string) int {
+	w := 0
+	for _, r := range line {
+		if r == '\t' {
+			w += tabWidth - w%tabWidth
+		} else {
+			w++
+		}
+	}
+	return w
 }
 
 // resolveAndReport iterates over examples, resolves each symbol via the
