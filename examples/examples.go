@@ -1,5 +1,9 @@
 // Package pkg contains compilable code snippets used in the README.
 // The #region markers are consumed by mdsync to keep the README in sync.
+//
+// Example:
+//
+//	pkg.Do()
 package pkg
 
 // #region basic

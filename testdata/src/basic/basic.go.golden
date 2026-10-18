@@ -1,4 +1,4 @@
-// pkg does something.
+// pkg does something. // want package:"example"
 //
 // Example:
 //

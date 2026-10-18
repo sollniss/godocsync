@@ -10,3 +10,9 @@ func TestExample(t *testing.T) {
 	multifile.NewCode()
 	// #endexample
 }
+
+func _() {
+	// #example package
+	multifile.NewCode()
+	// #endexample
+}

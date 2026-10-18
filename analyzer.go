@@ -15,7 +15,14 @@ import (
 // ExampleFact is exported for every exported symbol whose doc comment exists.
 // If Blocks is non-empty, the doc contains code blocks. If Blocks is empty,
 // the doc exists but has no code blocks.
+//
+// It is also exported as a package fact for the package doc comment so that
+// external test packages (pkg_test) can sync "#example package" markers. In
+// that case File names the file holding the doc comment: a package has no
+// types.Object (and thus no Pos) to recover the file from. File is empty for
+// object facts.
 type ExampleFact struct {
+	File   string
 	Blocks []BlockInfo
 }
 
@@ -59,8 +66,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	// For non-external-test packages, export ExampleFacts for documented symbols.
 	var localFacts map[types.Object]*ExampleFact
+	var localPkgFact *ExampleFact
 	if !isExternalTest {
 		localFacts = exportExampleFacts(pass, regions)
+		localPkgFact = exportPackageDocFact(pass)
 	}
 
 	if len(pieces) == 0 {
@@ -87,7 +96,14 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return obj, nil, false
 			}
 			return obj, &fact, false
-		}, nil)
+		}, func(block *exampleBlock) {
+			var fact ExampleFact
+			if !pass.ImportPackageFact(srcPkg, &fact) {
+				checkPackageDoc(pass, nil, block)
+				return
+			}
+			checkPackageDoc(pass, &fact, block)
+		})
 	} else {
 		resolveAndReport(pass, examples, func(key symbolKey) (types.Object, *ExampleFact, bool) {
 			obj := pass.Pkg.Scope().Lookup(key.name)
@@ -99,7 +115,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 			return obj, localFacts[obj], false
 		}, func(block *exampleBlock) {
-			checkPackageDoc(pass, block)
+			checkPackageDoc(pass, localPkgFact, block)
 		})
 	}
 
@@ -271,29 +287,63 @@ func buildExampleFact(fset *token.FileSet, doc *ast.CommentGroup) *ExampleFact {
 	return fact
 }
 
-// checkPackageDoc handles syncing code blocks in the package-level doc comment.
-func checkPackageDoc(pass *analysis.Pass, block *exampleBlock) {
-	key := symbolKey{name: "package"}
+// exportPackageDocFact exports an ExampleFact as a package fact if the package
+// has a doc comment. Only non-test files are considered: a comment above the
+// package clause of a _test.go file is not the package doc. Returns nil when
+// no package doc exists (no fact is exported), mirroring buildExampleFact.
+func exportPackageDocFact(pass *analysis.Pass) *ExampleFact {
 	for _, f := range pass.Files {
 		if f.Doc == nil {
+			continue
+		}
+		filename := pass.Fset.Position(f.Pos()).Filename
+		if strings.HasSuffix(filename, "_test.go") {
 			continue
 		}
 		fact := buildExampleFact(pass.Fset, f.Doc)
 		if fact == nil {
 			continue
 		}
-		if len(fact.Blocks) == 0 {
-			reportMissingBlocks(pass, block, key)
-			return
-		}
-		checkFactSync(pass, pass.Fset.File(f.Doc.Pos()), fact, block, key)
+		fact.File = filename
+		pass.ExportPackageFact(fact)
+		return fact
+	}
+	return nil
+}
+
+// checkPackageDoc handles syncing code blocks in the package-level doc comment.
+// fact is nil when the package has no doc comment.
+func checkPackageDoc(pass *analysis.Pass, fact *ExampleFact, block *exampleBlock) {
+	key := symbolKey{name: "package"}
+	if fact == nil {
+		pass.Report(analysis.Diagnostic{
+			Pos:     block.firstPos(),
+			Message: key.String() + " has no comment",
+		})
 		return
 	}
+	if len(fact.Blocks) == 0 {
+		reportMissingBlocks(pass, block, key)
+		return
+	}
+	checkFactSync(pass, tokenFileByName(pass.Fset, fact.File), fact, block, key)
+}
 
-	pass.Report(analysis.Diagnostic{
-		Pos:     block.ordinalPositions[0],
-		Message: key.String() + " has no comment",
+// tokenFileByName finds the token.File for filename in fset, or nil.
+// A package doc has no Pos to recover its file from, so the package fact
+// carries the filename and the file is looked up here. This relies on the
+// file set being shared with the package that exported the fact, the same
+// assumption the object-fact path makes via obj.Pos().
+func tokenFileByName(fset *token.FileSet, filename string) *token.File {
+	var found *token.File
+	fset.Iterate(func(tf *token.File) bool {
+		if tf.Name() == filename {
+			found = tf
+			return false
+		}
+		return true
 	})
+	return found
 }
 
 // reportMissingBlocks reports a "no corresponding code block" diagnostic for

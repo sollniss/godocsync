@@ -74,6 +74,19 @@ func TestMultiFile(t *testing.T) {
 		fact analysis.Fact
 	}
 	factStore := make(map[types.Object][]factEntry)
+	pkgFactStore := make(map[*types.Package][]factEntry)
+
+	// importFact copies the stored fact of fact's type into fact, if any.
+	importFact := func(entries []factEntry, fact analysis.Fact) bool {
+		wantType := reflect.TypeOf(fact)
+		for _, e := range entries {
+			if e.typ == wantType {
+				reflect.ValueOf(fact).Elem().Set(reflect.ValueOf(e.fact).Elem())
+				return true
+			}
+		}
+		return false
+	}
 
 	var baseDiags []analysis.Diagnostic
 	basePass := &analysis.Pass{
@@ -93,6 +106,15 @@ func TestMultiFile(t *testing.T) {
 			})
 		},
 		ImportObjectFact: func(obj types.Object, fact analysis.Fact) bool {
+			return false
+		},
+		ExportPackageFact: func(fact analysis.Fact) {
+			pkgFactStore[basePkg.Types] = append(pkgFactStore[basePkg.Types], factEntry{
+				typ:  reflect.TypeOf(fact),
+				fact: fact,
+			})
+		},
+		ImportPackageFact: func(pkg *types.Package, fact analysis.Fact) bool {
 			return false
 		},
 	}
@@ -115,18 +137,11 @@ func TestMultiFile(t *testing.T) {
 		},
 		ExportObjectFact: func(obj types.Object, fact analysis.Fact) {},
 		ImportObjectFact: func(obj types.Object, fact analysis.Fact) bool {
-			entries, ok := factStore[obj]
-			if !ok {
-				return false
-			}
-			wantType := reflect.TypeOf(fact)
-			for _, e := range entries {
-				if e.typ == wantType {
-					reflect.ValueOf(fact).Elem().Set(reflect.ValueOf(e.fact).Elem())
-					return true
-				}
-			}
-			return false
+			return importFact(factStore[obj], fact)
+		},
+		ExportPackageFact: func(fact analysis.Fact) {},
+		ImportPackageFact: func(pkg *types.Package, fact analysis.Fact) bool {
+			return importFact(pkgFactStore[pkg], fact)
 		},
 	}
 
@@ -138,11 +153,11 @@ func TestMultiFile(t *testing.T) {
 	allDiags := append(baseDiags, extDiags...)
 
 	// Verify diagnostics were reported.
-	if len(allDiags) != 3 {
+	if len(allDiags) != 4 {
 		for i, d := range allDiags {
 			t.Logf("diag[%d]: %s at %s", i, d.Message, basePass.Fset.Position(d.Pos))
 		}
-		t.Fatalf("expected 3 diagnostics, got %d", len(allDiags))
+		t.Fatalf("expected 4 diagnostics, got %d", len(allDiags))
 	}
 
 	// All diagnostics should be "code block is out of sync" on multi_file.go.

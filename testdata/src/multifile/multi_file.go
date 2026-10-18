@@ -1,3 +1,10 @@
+// Package multifile does something.
+//
+// Example:
+//
+//	oldCode() // want "code block is out of sync with example code"
+//
+// Extra line.
 package multifile
 
 // MultiFile does something.

@@ -1,3 +1,10 @@
+// Package multifile does something.
+//
+// Example:
+//
+//	multifile.NewCode()
+//
+// Extra line.
 package multifile
 
 // MultiFile does something.
