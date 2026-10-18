@@ -1,6 +1,7 @@
 package godocsync_test
 
 import (
+	"go/token"
 	"go/types"
 	"os"
 	"path/filepath"
@@ -25,9 +26,11 @@ func TestInline(t *testing.T) {
 	analysistest.RunWithSuggestedFixes(t, testdata, godocsync.Analyzer, "inline")
 }
 
-func TestMultiFile(t *testing.T) {
-	testdata := analysistest.TestData()
-	pkgDir := filepath.Join(testdata, "src", "multifile")
+// runCrossPackage runs the analyzer on the package in pkgDir and then on its
+// external test package, with the facts of the first run available to the
+// second run. It returns the file set and the diagnostics of both runs.
+func runCrossPackage(t *testing.T, pkgDir string) (*token.FileSet, []analysis.Diagnostic, []analysis.Diagnostic) {
+	t.Helper()
 
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax |
@@ -149,13 +152,21 @@ func TestMultiFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	return basePkg.Fset, baseDiags, extDiags
+}
+
+func TestMultiFile(t *testing.T) {
+	testdata := analysistest.TestData()
+	pkgDir := filepath.Join(testdata, "src", "multifile")
+	fset, baseDiags, extDiags := runCrossPackage(t, pkgDir)
+
 	// Collect all diagnostics.
 	allDiags := append(baseDiags, extDiags...)
 
 	// Verify diagnostics were reported.
 	if len(allDiags) != 4 {
 		for i, d := range allDiags {
-			t.Logf("diag[%d]: %s at %s", i, d.Message, basePass.Fset.Position(d.Pos))
+			t.Logf("diag[%d]: %s at %s", i, d.Message, fset.Position(d.Pos))
 		}
 		t.Fatalf("expected 4 diagnostics, got %d", len(allDiags))
 	}
@@ -165,7 +176,7 @@ func TestMultiFile(t *testing.T) {
 		if !strings.Contains(d.Message, "code block is out of sync") {
 			t.Fatalf("unexpected message: %s", d.Message)
 		}
-		pos := basePass.Fset.Position(d.Pos)
+		pos := fset.Position(d.Pos)
 		if filepath.Base(pos.Filename) != "multi_file.go" {
 			t.Fatalf("expected diagnostic in multi_file.go, got %s", pos.Filename)
 		}
@@ -194,8 +205,8 @@ func TestMultiFile(t *testing.T) {
 
 	result := append([]byte(nil), src...)
 	for _, edit := range allEdits {
-		start := basePass.Fset.Position(edit.Pos).Offset
-		end := basePass.Fset.Position(edit.End).Offset
+		start := fset.Position(edit.Pos).Offset
+		end := fset.Position(edit.End).Offset
 		tmp := make([]byte, 0, len(result)-(end-start)+len(edit.NewText))
 		tmp = append(tmp, result[:start]...)
 		tmp = append(tmp, edit.NewText...)
@@ -211,6 +222,32 @@ func TestMultiFile(t *testing.T) {
 
 	if string(result) != string(golden) {
 		t.Errorf("fix result does not match golden:\n--- got ---\n%s\n--- want ---\n%s", result, golden)
+	}
+}
+
+func TestNameCollision(t *testing.T) {
+	// The external test package imports 2 packages with the name collide: the
+	// package under test and collide/other, which it imports first. The
+	// analyzer must resolve the markers in the package under test, by its
+	// import path, and not in the other package.
+	testdata := analysistest.TestData()
+	fset, baseDiags, extDiags := runCrossPackage(t, filepath.Join(testdata, "src", "collide"))
+
+	if len(baseDiags) != 0 {
+		t.Fatalf("expected no diagnostics on the base package, got %d: %s", len(baseDiags), baseDiags[0].Message)
+	}
+	if len(extDiags) != 1 {
+		for i, d := range extDiags {
+			t.Logf("diag[%d]: %s at %s", i, d.Message, fset.Position(d.Pos))
+		}
+		t.Fatalf("expected 1 diagnostic, got %d", len(extDiags))
+	}
+	d := extDiags[0]
+	if !strings.Contains(d.Message, "code block is out of sync") {
+		t.Fatalf("unexpected message: %s", d.Message)
+	}
+	if base := filepath.Base(fset.Position(d.Pos).Filename); base != "collide.go" {
+		t.Fatalf("expected the diagnostic in collide.go, got %s", base)
 	}
 }
 

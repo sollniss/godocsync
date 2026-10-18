@@ -438,10 +438,24 @@ func lookupMethod(pkg *types.Package, key symbolKey) types.Object {
 	return obj
 }
 
-// findSelfPackage finds the source package imported by an external test package.
+// findSelfPackage finds the package under test that an external test package
+// (pkg_test) imports.
+//
+// It matches by import path: the path of an external test package is the path
+// of the package under test with the suffix "_test". A match by package name
+// is not enough, because another import can have the same name. The
+// name match remains only as a fallback for a loader that does not use the
+// "_test" path suffix.
 func findSelfPackage(pass *analysis.Pass) *types.Package {
+	imports := pass.Pkg.Imports()
+	selfPath := strings.TrimSuffix(pass.Pkg.Path(), "_test")
+	for _, imp := range imports {
+		if imp.Path() == selfPath {
+			return imp
+		}
+	}
 	baseName := strings.TrimSuffix(pass.Pkg.Name(), "_test")
-	for _, imp := range pass.Pkg.Imports() {
+	for _, imp := range imports {
 		if imp.Name() == baseName {
 			return imp
 		}
